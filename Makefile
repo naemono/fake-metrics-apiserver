@@ -13,7 +13,7 @@ GOLANGCI_VERSION:=1.52.2
 .PHONY: all
 all: build-fake-adapter
 
-APISERVER_IMAGE ?= $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION)
+APISERVER_IMAGE ?= $(REGISTRY)/$(IMAGE):$(VERSION)-$(ARCH)
 
 # Generate
 # --------
