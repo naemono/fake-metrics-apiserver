@@ -1,0 +1,236 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: custom-metrics:system:auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: custom-metrics-apiserver
+  namespace: custom-metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: custom-metrics-auth-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+- kind: ServiceAccount
+  name: custom-metrics-apiserver
+  namespace: custom-metrics
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: custom-metrics-apiserver
+  name: custom-metrics-apiserver
+  namespace: custom-metrics
+spec:
+  replicas: 1deploy/
+  selector:
+    matchLabels:
+      app: custom-metrics-apiserver
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8443"
+        prometheus.io/scrape: "true"
+      labels:
+        app: custom-metrics-apiserver
+      name: custom-metrics-apiserver
+    spec:
+      serviceAccountName: custom-metrics-apiserver
+      containers:
+      - name: custom-metrics-apiserver
+        image: mmontg1/custom-metrics-apiserver:0.0.18
+        imagePullPolicy: IfNotPresent
+        command: ["/fake-metrics-apiserver"]
+        args:
+        - --secure-port=8443
+        - --cert-dir=/var/run/serving-cert
+        - --v=4
+        # - --scaling
+        ports:
+        - containerPort: 8443
+          name: https
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp-vol
+          readOnly: false
+        - mountPath: /var/run/serving-cert
+          name: volume-serving-cert
+          readOnly: false
+      volumes:
+      - name: temp-vol
+        emptyDir: {}
+      - name: volume-serving-cert
+        emptyDir: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: custom-metrics-resource-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: custom-metrics-resource-reader
+subjects:
+- kind: ServiceAccount
+  name: custom-metrics-apiserver
+  namespace: custom-metrics
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: custom-metrics-apiserver
+  namespace: custom-metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: custom-metrics-apiserver
+  name: custom-metrics-apiserver
+  namespace: custom-metrics
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: custom-metrics-apiserver
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.custom.metrics.k8s.io
+spec:
+  service:
+    name: custom-metrics-apiserver
+    namespace: custom-metrics
+  group: custom.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta2.custom.metrics.k8s.io
+spec:
+  service:
+    name: custom-metrics-apiserver
+    namespace: custom-metrics
+  group: custom.metrics.k8s.io
+  version: v1beta2
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 200
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.external.metrics.k8s.io
+spec:
+  service:
+    name: custom-metrics-apiserver
+    namespace: custom-metrics
+  group: external.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: custom-metrics-server-resources
+rules:
+- apiGroups:
+  - custom.metrics.k8s.io
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: custom-metrics-resource-reader
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - pods
+  - services
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - "autoscaling"
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hpa-controller-custom-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: custom-metrics-server-resources
+subjects:
+- kind: ServiceAccount
+  name: horizontal-pod-autoscaler
+  namespace: kube-system
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    monitoring: custom-metrics-apiserver
+  name: custom-metrics-apiserver-monitor
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 15s
+    port: https
+    scheme: https
+    path: /metrics
+    tlsConfig:
+      insecureSkipVerify: true
+    bearerTokenSecret:
+      # This needs to be adjusted to a valid serviceaccount
+      # token with the following provileges
+      # - nonResourceURLs: ["/metrics"]
+      #   verbs: ["get"]
+      name: kube-prometheus-kube-prome-prometheus-token-t95vr
+      key: token
+  namespaceSelector:
+    matchNames:
+    - custom-metrics
+  selector:
+    matchLabels:
+      app: custom-metrics-apiserver
