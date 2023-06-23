@@ -13,7 +13,7 @@ GOLANGCI_VERSION:=1.52.2
 .PHONY: all
 all: build-fake-adapter
 
-OPERATOR_IMAGE               ?= $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION)
+APISERVER_IMAGE ?= $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION)
 
 # Generate
 # --------
@@ -50,9 +50,15 @@ docker-build:
 	docker buildx build . \
 		--progress=plain \
 		--build-arg VERSION='$(VERSION)' \
-		-t $(OPERATOR_IMAGE) \
+		-t $(APISERVER_IMAGE) \
 		--load
-		# --push
+
+docker-build-push:
+	docker buildx build . \
+		--progress=plain \
+		--build-arg VERSION='$(VERSION)' \
+		-t $(APISERVER_IMAGE) \
+		--push
 
 # Format and lint
 # ---------------
