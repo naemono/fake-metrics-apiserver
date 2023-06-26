@@ -39,7 +39,7 @@ var (
 		Name:           "hpa_poll_duration_seconds",
 		Help:           "Durationin seconds between polling of each hpa resource",
 		StabilityLevel: metrics.ALPHA,
-		Buckets:        []float64{15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 30.0, 60.0},
+		Buckets:        []float64{15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 30.0, 40.0, 50.0, 60.0, 90.0, 120.0, 240.0},
 	}, []string{"namespace", "name", "group", "resource", "labels"})
 )
 

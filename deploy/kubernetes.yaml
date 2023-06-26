@@ -54,7 +54,7 @@ spec:
       serviceAccountName: custom-metrics-apiserver
       containers:
       - name: custom-metrics-apiserver
-        image: mmontg1/custom-metrics-apiserver:0.0.19
+        image: mmontg1/custom-metrics-apiserver:0.0.20
         imagePullPolicy: IfNotPresent
         command: ["/fake-metrics-apiserver"]
         args:
