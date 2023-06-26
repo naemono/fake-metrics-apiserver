@@ -116,7 +116,6 @@ func ListObjectNames(mapper apimeta.RESTMapper, client dynamic.Interface, namesp
 		}
 	}
 
-	klog.InfoS("got matching objects", "objects", matchingObjectsRaw.Items)
 	var names []string
 	err = apimeta.EachListItem(matchingObjectsRaw, func(item runtime.Object) error {
 		objName := item.(*unstructured.Unstructured).GetName()

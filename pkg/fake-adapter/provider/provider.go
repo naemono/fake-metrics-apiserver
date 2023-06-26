@@ -342,10 +342,7 @@ func (p *testingProvider) updateHPATracking(hpa *CustomMetricResource) error {
 	now := metav1.Now()
 
 	if prev, ok := p.hpaTracking[*hpa]; ok {
-		klog.InfoS("emitting metrics", "key", *hpa)
 		p.hpaPollDurationObserver.Observe(hpa.Namespace, hpa.Name, hpa.GroupResource.Group, hpa.GroupResource.Resource, hpa.labels, now.Sub(prev.Time))
-	} else {
-		klog.InfoS("not emitting metrics as key not found", "key", *hpa)
 	}
 
 	p.hpaTracking[*hpa] = now
@@ -354,7 +351,6 @@ func (p *testingProvider) updateHPATracking(hpa *CustomMetricResource) error {
 }
 
 func (p *testingProvider) GetMetricByName(_ context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
-	klog.Info("get metric by name")
 	p.valuesLock.RLock()
 	defer p.valuesLock.RUnlock()
 
@@ -366,7 +362,6 @@ func (p *testingProvider) GetMetricByName(_ context.Context, name types.Namespac
 }
 
 func (p *testingProvider) GetMetricBySelector(_ context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	klog.Info("get metric by selector")
 	p.valuesLock.RLock()
 	defer p.valuesLock.RUnlock()
 
@@ -374,7 +369,6 @@ func (p *testingProvider) GetMetricBySelector(_ context.Context, namespace strin
 }
 
 func (p *testingProvider) GetExternalMetric(_ context.Context, _ string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
-	klog.Info("get external metric")
 	p.valuesLock.RLock()
 	defer p.valuesLock.RUnlock()
 

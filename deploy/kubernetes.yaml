@@ -38,7 +38,7 @@ metadata:
   name: custom-metrics-apiserver
   namespace: custom-metrics
 spec:
-  replicas: 1deploy/
+  replicas: 1
   selector:
     matchLabels:
       app: custom-metrics-apiserver
@@ -54,7 +54,7 @@ spec:
       serviceAccountName: custom-metrics-apiserver
       containers:
       - name: custom-metrics-apiserver
-        image: mmontg1/custom-metrics-apiserver:0.0.18
+        image: mmontg1/custom-metrics-apiserver:0.0.19
         imagePullPolicy: IfNotPresent
         command: ["/fake-metrics-apiserver"]
         args:
